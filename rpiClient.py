@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import socket
+import dht11
+import bh1750
 
 HOST = "127.0.0.1"
 PORT = 2016
@@ -26,13 +28,16 @@ def waitCmdAndExecute(tcpSocket):
     while True:
         command = tcpSocket.recv(BUFSZ)
         if command == "temperature":
-            tcpSocket.send("I'm temperature")
+            temp = dht11.getTemperature()
+            tcpSocket.send(str(temp))
         elif command == "humidity":
-            tcpSocket.send("I'm humidity")
+            hum = dht11.getHumidity()
+            tcpSocket.send(str(hum))
         elif command == "aqi":
             tcpSocket.send("I'm aqi")
         elif command == "light":
-            tcpSocket.send("I'm light")
+            light = bh1750.getLight()
+            tcpSocket.send(str(light))
         else:
             tcpSocket.send("[ERROR] undefined command: " + command)
     tcpSocket.close()
