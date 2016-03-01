@@ -45,7 +45,7 @@ def getLight():
     i2cBus = initI2C()
     light = getLightOne(DEVICE, i2cBus)
     result = '%d' % light
-    return light
+    return result
 
 def main():
     i2cBus = initI2C()
