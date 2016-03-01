@@ -4,45 +4,58 @@ import socket
 import os
 
 HOST = "0.0.0.0"
-PORT = 2016
-ADDR = (HOST, PORT)
+TCPPORT = 2016
+UDPPORT = 2017
+TCPADDR = (HOST, TCPPORT)
+UDPADDR = (HOST, UDPPORT)
 BUFSZ = 1024
-SKFILE = "/tmp/python_udp_socket"
 
-if __name__ == '__main__':
+def openTcpSocket(address, listenNum):
+    # tcpSocket: ECS server <---> RPI client
+    tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcpSocket.bind(address)
+    tcpSocket.listen(listenNum)
+    return tcpSocket
 
-    # tcpSk: ECS Server <---> RPI Client
-    tcpSk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcpSk.bind(ADDR);
-    tcpSk.listen(1);
+def openUdpSocket(address):
+    # udpSocket: ECS Server <---> ECS Client
+    udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udpSocket.bind(address)
+    return udpSocket
+
+def validateClient(clientConnection):
+    buf = clientConnection.recv(BUFSZ)
+    if buf != "I'm RPI":
+        clientConnection.close()
+        print("[ERROR] the client is not RPI")
+        exit(1)
+    # validate server for client
+    clientConnection.send("I'm ECS")
+
+def waitCmdAndTransfer(rpiClient, ecsClient):
+    while True:
+        (command, ecsAddr) = ecsClient.recvfrom(BUFSZ)
+        rpiClient.send(command)
+        data = rpiClient.recv(BUFSZ)
+        ecsClient.sendto(data, ecsAddr)
+    ecsClient.close()
+
+def main():
     print("open ECS-RPI tcp socket")
-
-    # udpSk: ECS Server <---> ECS Client
-    udpSk = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-    if os.path.exists(SKFILE):
-        os.remove(SKFILE)
-    udpSk.bind("/tmp/python_udp_socket");
+    tcpSk = openTcpSocket(TCPADDR, 1)
     print("open ECS-ECS udp socket")
-
-    print("ECS Server starts listening RPI Client...")
+    udpSk = openUdpSocket(UDPADDR)
+    print("ECS server starts listening RPI client...")
     (rpiConn, rpiAddr) = tcpSk.accept()
     try:
         rpiConn.settimeout(5)
         print("connected by " + rpiAddr[0] + ":" + str(rpiAddr[1]))
-
-        # make sure client is RPI
-        buf = rpiConn.recv(BUFSZ)
-        if buf != "I'm RPI":
-            print("the client is not RPI")
-            rpiConn.close()
-            exit()
-        rpiConn.send("I'm ECS")
-
-        while True:
-            command = udpSk.recv(BUFSZ)
-            rpiConn.send(command)
-        udpSk.close()
-
+        validateClient(rpiConn)
+        # ECS server acts as a mediator
+        waitCmdAndTransfer(rpiConn, udpSk)
     except socket.timeout:
-        print("timeout!!!")
+        print("[ERROR] connection timeout")
     rpiConn.close()
+
+if __name__ == '__main__':
+    main()

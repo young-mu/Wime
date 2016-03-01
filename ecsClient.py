@@ -1,19 +1,23 @@
 #!/usr/bin/python
 
+import sys
 import socket
 import os
 
-SKFILE = "/tmp/python_udp_socket"
+HOST = "127.0.0.1"
+UDPPORT = 2017
+UDPADDR = (HOST, UDPPORT)
+BUFSZ = 1024
+
+def main(command):
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client.sendto(command, UDPADDR)
+    (data, srvAddr) = client.recvfrom(BUFSZ)
+    print(data)
+    client.close()
 
 if __name__ == '__main__':
-    if os.path.exists(SKFILE):
-        print("connect to ECS server...")
-        client  = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-        client.connect(SKFILE)
-        print("connected!")
-
-        client.send("hello")
-        client.close()
-
-    else:
-        print("udp socket file does not exist!")
+    if len(sys.argv) != 2:
+        print("[ERROR] wrong usage")
+        exit(1)
+    main(sys.argv[1])
