@@ -5,6 +5,7 @@ import sds011
 import dht11
 import bh1750
 import camera
+from time import sleep
 
 HOST = "127.0.0.1"
 PORT = 2016
@@ -31,10 +32,13 @@ def sendFile(tcpSocket, filename):
     f = open(filename, 'rb')
     while True:
         piece = f.read(PIECE)
-        if not data:
+        if not piece:
             break;
         tcpSocket.send(piece)
     f.close()
+    # ensure read buffer empty for ECS server
+    sleep(1)
+    tcpSocket.send("EOF")
 
 def waitCmdAndExecute(tcpSocket):
     while True:

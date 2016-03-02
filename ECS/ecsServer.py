@@ -37,7 +37,7 @@ def recvFile(tcpSocket, filepath):
     f = open(filepath, 'wb')
     while True:
         piece = tcpSocket.recv(PIECE)
-        if not data:
+        if piece == "EOF":
             break;
         f.write(piece)
     f.close()
@@ -48,6 +48,8 @@ def waitCmdAndTransfer(rpiClient, ecsClient):
         rpiClient.send(command)
         if command == "camera":
             filepath = "/tmp/image.jpg"
+            if os.path.exists(filepath):
+                os.remove(filepath)
             recvFile(rpiClient, filepath)
             ecsClient.sendto(filepath, ecsAddr)
         else:
@@ -63,7 +65,7 @@ def main():
     print("ECS server starts listening RPI client...")
     (rpiConn, rpiAddr) = tcpSk.accept()
     try:
-        rpiConn.settimeout(5)
+        rpiConn.settimeout(10)
         print("connected by " + rpiAddr[0] + ":" + str(rpiAddr[1]))
         validateClient(rpiConn)
         # ECS server acts as a mediator
