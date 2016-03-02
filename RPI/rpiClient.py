@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import socket
+import sds011
 import dht11
 import bh1750
 import camera
@@ -45,7 +46,8 @@ def waitCmdAndExecute(tcpSocket):
             hum = dht11.getHumidity()
             tcpSocket.send(str(hum))
         elif command == "aqi":
-            tcpSocket.send("I'm aqi")
+            (pm25, pm10) = sds011.getAqi()
+            tcpSocket.send(str(pm25) + "," + str(pm10))
         elif command == "light":
             light = bh1750.getLight()
             tcpSocket.send(str(light))
