@@ -3,11 +3,13 @@
 import socket
 import dht11
 import bh1750
+import camera
 
 HOST = "127.0.0.1"
 PORT = 2016
 ADDR = (HOST, PORT)
 BUFSZ = 1024
+PIECE = 4096
 
 def openTcpSocket(address):
     tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,6 +26,15 @@ def validateServer(tcpSocket):
         print("[ERROR] the server is not ECS")
         exit(1)
 
+def sendFile(tcpSocket, filename):
+    f = open(filename, 'rb')
+    while True:
+        piece = f.read(PIECE)
+        if not data:
+            break;
+        tcpSocket.send(piece)
+    f.close()
+
 def waitCmdAndExecute(tcpSocket):
     while True:
         command = tcpSocket.recv(BUFSZ)
@@ -38,6 +49,10 @@ def waitCmdAndExecute(tcpSocket):
         elif command == "light":
             light = bh1750.getLight()
             tcpSocket.send(str(light))
+        elif command == "camera":
+            filepath = "/tmp/image.jpg"
+            camera.getCapture(filepath)
+            sendFile(tcpSocket, filepath)
         else:
             tcpSocket.send("[ERROR] undefined command: " + command)
     tcpSocket.close()

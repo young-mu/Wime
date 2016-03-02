@@ -9,6 +9,7 @@ UDPPORT = 2017
 TCPADDR = (HOST, TCPPORT)
 UDPADDR = (HOST, UDPPORT)
 BUFSZ = 1024
+PIECE = 4096
 
 def openTcpSocket(address, listenNum):
     # tcpSocket: ECS server <---> RPI client
@@ -32,12 +33,26 @@ def validateClient(clientConnection):
     # validate server for client
     clientConnection.send("I'm ECS")
 
+def recvFile(tcpSocket, filepath):
+    f = open(filepath, 'wb')
+    while True:
+        piece = tcpSocket.recv(PIECE)
+        if not data:
+            break;
+        f.write(piece)
+    f.close()
+
 def waitCmdAndTransfer(rpiClient, ecsClient):
     while True:
         (command, ecsAddr) = ecsClient.recvfrom(BUFSZ)
         rpiClient.send(command)
-        data = rpiClient.recv(BUFSZ)
-        ecsClient.sendto(data, ecsAddr)
+        if command == "camera":
+            filepath = "/tmp/image.jpg"
+            recvFile(rpiClient, filepath)
+            ecsClient.sendto(filepath, ecsAddr)
+        else:
+            data = rpiClient.recv(BUFSZ)
+            ecsClient.sendto(data, ecsAddr)
     ecsClient.close()
 
 def main():
